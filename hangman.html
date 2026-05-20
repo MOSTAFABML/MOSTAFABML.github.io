@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>HANGMAN — Dark Edition</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Creepster&family=Special+Elite&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #050508;
+  --bg2: #0a0a0f;
+  --surface: #0f0f18;
+  --border: rgba(180,0,0,0.3);
+  --red: #cc0000;
+  --red-bright: #ff2222;
+  --red-dim: rgba(180,0,0,0.15);
+  --yellow: #d4a017;
+  --green: #00cc44;
+  --cyan: #00cccc;
+  --text: #c8c8d0;
+  --muted: #555566;
+  --bright: #f0eee8;
+  --mono: 'Share Tech Mono', monospace;
+  --horror: 'Creepster', cursive;
+  --type: 'Special Elite', cursive;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:var(--mono);
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+  cursor:crosshair;
+  background-image:
+    repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(180,0,0,0.015) 3px,rgba(180,0,0,0.015) 4px),
+    radial-gradient(ellipse 800px 600px at 50% -10%, rgba(120,0,0,0.12) 0%, transparent 70%);
+  background-attachment:fixed;
+}
+
+/* ── SCREENS ── */
+.screen{display:none;min-height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center;}
+.screen.active{display:flex;}
+
+/* ── INTRO SCREEN ── */
+#screen-intro pre{
+  font-family:var(--mono);
+  font-size:clamp(0.35rem,0.9vw,0.7rem);
+  line-height:1.2;
+  color:#550000;
+  text-shadow:0 0 8px #880000;
+  white-space:pre;
+  margin-bottom:2rem;
+}
+.press-enter{
+  font-family:var(--horror);
+  font-size:clamp(1.2rem,3vw,2rem);
+  color:var(--red-bright);
+  text-shadow:0 0 20px var(--red), 0 0 40px rgba(180,0,0,0.5);
+  animation:flicker 1.5s ease-in-out infinite;
+  letter-spacing:0.1em;
+}
+@keyframes flicker{
+  0%,100%{opacity:1;text-shadow:0 0 20px var(--red),0 0 40px rgba(180,0,0,0.5);}
+  50%{opacity:0.6;text-shadow:0 0 8px var(--red);}
+  75%{opacity:0.9;}
+}
+
+/* ── DOOR SCREEN ── */
+#screen-door{background:var(--bg2);}
+#screen-door pre{
+  font-family:var(--mono);
+  font-size:clamp(0.3rem,0.75vw,0.6rem);
+  line-height:1.15;
+  color:#3a0000;
+  text-shadow:0 0 6px #660000;
+  white-space:pre;
+}
+.door-prompt{margin-top:2rem;}
+.door-prompt p{font-family:var(--type);color:#aa6600;font-size:1rem;margin-bottom:0.8rem;font-style:italic;}
+.door-input-wrap{display:flex;gap:0.5rem;justify-content:center;align-items:center;}
+.door-input-wrap input{
+  font-family:var(--mono);
+  background:rgba(180,0,0,0.08);
+  border:1px solid var(--border);
+  color:var(--red-bright);
+  padding:0.5rem 1rem;
+  font-size:1rem;
+  text-transform:uppercase;
+  letter-spacing:0.2em;
+  outline:none;
+  width:160px;
+  text-align:center;
+}
+.door-input-wrap input:focus{border-color:var(--red-bright);box-shadow:0 0 12px rgba(180,0,0,0.4);}
+.btn-ghost{
+  font-family:var(--mono);
+  background:rgba(180,0,0,0.1);
+  border:1px solid var(--border);
+  color:var(--red);
+  padding:0.5rem 1.2rem;
+  cursor:pointer;
+  font-size:0.85rem;
+  letter-spacing:0.08em;
+  transition:all 0.2s;
+}
+.btn-ghost:hover{background:rgba(180,0,0,0.25);color:var(--red-bright);box-shadow:0 0 16px rgba(180,0,0,0.3);}
+
+/* ── MENU SCREEN ── */
+#screen-menu{gap:1.5rem;}
+.menu-title{
+  font-family:var(--horror);
+  font-size:clamp(3rem,8vw,6rem);
+  color:var(--red);
+  text-shadow:0 0 30px var(--red),0 0 60px rgba(180,0,0,0.4);
+  letter-spacing:0.05em;
+  margin-bottom:0.5rem;
+}
+.menu-sub{font-family:var(--type);color:var(--muted);font-size:0.9rem;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:2rem;}
+.menu-box{
+  border:1px solid rgba(180,0,0,0.2);
+  background:var(--surface);
+  padding:2rem 3rem;
+  position:relative;
+  min-width:320px;
+}
+.menu-box::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,rgba(180,0,0,0.04),transparent);pointer-events:none;}
+.menu-item{
+  display:flex;align-items:center;gap:1rem;
+  padding:0.7rem 0;
+  border-bottom:1px solid rgba(255,255,255,0.04);
+  cursor:pointer;
+  transition:all 0.2s;
+  font-family:var(--type);
+  font-size:1.05rem;
+  color:var(--text);
+  text-align:left;
+}
+.menu-item:last-child{border-bottom:none;}
+.menu-item:hover{color:var(--red-bright);padding-left:0.5rem;}
+.menu-item:hover .menu-num{color:var(--red-bright);text-shadow:0 0 10px var(--red);}
+.menu-num{font-family:var(--mono);font-size:0.8rem;color:var(--red);width:24px;opacity:0.8;}
+.level-badge{font-family:var(--mono);font-size:0.65rem;padding:1px 6px;border:1px solid;border-radius:2px;margin-left:auto;}
+.badge-easy{color:#00cc44;border-color:#00cc44;}
+.badge-medium{color:var(--yellow);border-color:var(--yellow);}
+.badge-hard{color:var(--red);border-color:var(--red);}
+
+/* ── NAME SCREEN ── */
+#screen-name{gap:1rem;}
+.horror-title{font-family:var(--horror);font-size:clamp(2rem,5vw,3.5rem);color:var(--red);text-shadow:0 0 20px var(--red);margin-bottom:1rem;}
+.creep-text{font-family:var(--type);color:#aa6600;font-style:italic;margin-bottom:2rem;font-size:1rem;}
+.styled-input{
+  font-family:var(--mono);
+  background:rgba(180,0,0,0.06);
+  border:1px solid var(--border);
+  border-bottom:2px solid var(--red);
+  color:var(--bright);
+  padding:0.7rem 1.2rem;
+  font-size:1rem;
+  outline:none;
+  width:min(320px,80vw);
+  text-align:center;
+  letter-spacing:0.1em;
+  transition:all 0.2s;
+}
+.styled-input:focus{border-color:var(--red-bright);box-shadow:0 0 20px rgba(180,0,0,0.2);}
+.btn-primary{
+  font-family:var(--mono);
+  background:var(--red);
+  border:none;
+  color:#fff;
+  padding:0.7rem 2rem;
+  font-size:0.9rem;
+  letter-spacing:0.1em;
+  cursor:pointer;
+  margin-top:1rem;
+  transition:all 0.2s;
+  text-transform:uppercase;
+}
+.btn-primary:hover{background:var(--red-bright);box-shadow:0 0 20px rgba(180,0,0,0.5);}
+
+/* ── WORD INPUT SCREEN ── */
+#screen-word-input{gap:1rem;}
+.level-title{font-family:var(--horror);font-size:2.5rem;color:var(--yellow);text-shadow:0 0 15px var(--yellow);}
+.instruction-box{
+  background:rgba(180,0,0,0.06);
+  border:1px solid rgba(180,0,0,0.2);
+  padding:1rem 2rem;
+  font-family:var(--type);
+  color:var(--text);
+  font-size:0.9rem;
+  max-width:500px;
+  line-height:1.6;
+  margin-bottom:1rem;
+}
+
+/* ── GAME SCREEN ── */
+#screen-game{flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:2rem;padding:2rem;min-height:100vh;align-content:center;}
+.game-left{display:flex;flex-direction:column;align-items:center;gap:1rem;}
+.hangman-ascii{
+  font-family:var(--mono);
+  font-size:clamp(0.65rem,1.2vw,0.9rem);
+  line-height:1.3;
+  color:var(--yellow);
+  text-shadow:0 0 8px rgba(212,160,23,0.5);
+  white-space:pre;
+  background:rgba(212,160,23,0.03);
+  border:1px solid rgba(212,160,23,0.1);
+  padding:1rem 1.5rem;
+  min-height:280px;
+}
+.attempts-bar{
+  display:flex;gap:4px;
+}
+.attempt-dot{
+  width:14px;height:14px;border-radius:50%;
+  border:1px solid var(--red);
+  background:var(--red);
+  transition:all 0.3s;
+}
+.attempt-dot.used{background:transparent;opacity:0.3;}
+
+.game-right{display:flex;flex-direction:column;gap:1.5rem;min-width:300px;max-width:500px;}
+.player-info{font-family:var(--type);color:var(--muted);font-size:0.85rem;letter-spacing:0.1em;}
+.player-info span{color:var(--red-bright);}
+.word-display{
+  display:flex;flex-wrap:wrap;gap:0.5rem;justify-content:center;
+  padding:1rem;
+  background:rgba(0,0,0,0.3);
+  border:1px solid rgba(255,255,255,0.05);
+}
+.letter-slot{
+  width:32px;height:40px;
+  border-bottom:2px solid var(--muted);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--horror);
+  font-size:1.5rem;
+  color:var(--bright);
+  text-shadow:0 0 8px var(--red);
+  transition:all 0.3s;
+  position:relative;
+}
+.letter-slot.space-slot{border-bottom-color:transparent;width:20px;}
+.letter-slot.revealed{border-bottom-color:var(--green);color:var(--green);text-shadow:0 0 10px var(--green);}
+.letter-slot.wrong{color:var(--red-bright);animation:shake 0.3s;}
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-4px);}75%{transform:translateX(4px);}
+
+}
+
+.wrong-letters{
+  display:flex;flex-wrap:wrap;gap:0.4rem;
+  min-height:36px;
+}
+.wrong-letter{
+  font-family:var(--mono);
+  font-size:0.85rem;
+  color:var(--red);
+  border:1px solid rgba(180,0,0,0.4);
+  padding:2px 8px;
+  background:rgba(180,0,0,0.08);
+  text-decoration:line-through;
+  opacity:0.8;
+}
+
+.keyboard{display:flex;flex-wrap:wrap;gap:0.4rem;justify-content:center;max-width:420px;}
+.key-btn{
+  font-family:var(--mono);
+  font-size:0.8rem;
+  width:36px;height:36px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.1);
+  color:var(--text);
+  cursor:pointer;
+  transition:all 0.15s;
+  display:flex;align-items:center;justify-content:center;
+}
+.key-btn:hover:not(:disabled){background:rgba(180,0,0,0.2);border-color:var(--red);color:var(--red-bright);}
+.key-btn:disabled{opacity:0.2;cursor:not-allowed;text-decoration:line-through;}
+.key-btn.correct{background:rgba(0,204,68,0.15);border-color:var(--green);color:var(--green);cursor:not-allowed;}
+.key-btn.wrong-key{background:rgba(180,0,0,0.1);border-color:rgba(180,0,0,0.3);color:rgba(180,0,0,0.5);cursor:not-allowed;}
+
+.msg-box{
+  font-family:var(--type);
+  font-size:0.95rem;
+  padding:0.6rem 1rem;
+  border-left:3px solid var(--red);
+  color:var(--text);
+  background:rgba(180,0,0,0.06);
+  min-height:2.5rem;
+  font-style:italic;
+}
+.msg-box.good{border-color:var(--green);color:var(--green);}
+.msg-box.bad{border-color:var(--red-bright);color:var(--red-bright);}
+
+/* ── END SCREEN ── */
+#screen-end{gap:1.5rem;}
+.end-ascii{
+  font-family:var(--mono);
+  font-size:clamp(0.4rem,0.9vw,0.65rem);
+  line-height:1.2;
+  white-space:pre;
+}
+.end-ascii.win{color:var(--green);text-shadow:0 0 8px var(--green);}
+.end-ascii.lose{color:var(--red);text-shadow:0 0 8px var(--red);}
+.end-title{font-family:var(--horror);font-size:clamp(2.5rem,6vw,4rem);}
+.end-title.win{color:var(--green);text-shadow:0 0 20px var(--green);}
+.end-title.lose{color:var(--red-bright);text-shadow:0 0 20px var(--red);}
+.end-word{font-family:var(--type);color:var(--muted);font-size:1rem;margin-top:-0.5rem;}
+.end-word span{color:var(--bright);font-size:1.2rem;}
+.end-btns{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;}
+
+/* ── HOW TO PLAY ── */
+#screen-howto{gap:1rem;max-width:600px;margin:auto;}
+#screen-howto h2{font-family:var(--horror);font-size:2.5rem;color:var(--red);text-shadow:0 0 15px var(--red);}
+.howto-box{
+  background:var(--surface);
+  border:1px solid rgba(180,0,0,0.2);
+  padding:1.5rem 2rem;
+  text-align:left;
+}
+.howto-box p{font-family:var(--type);color:var(--text);line-height:1.8;font-size:0.95rem;margin-bottom:0.5rem;}
+.howto-box p strong{color:var(--red-bright);}
+
+/* ── HELP PROMPT ── */
+#screen-help{gap:1.5rem;}
+#screen-help h2{font-family:var(--horror);font-size:2rem;color:var(--yellow);}
+.help-options{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;}
+
+/* ── TYPING EFFECT ── */
+.typed-container{font-family:var(--type);color:#aa6600;font-style:italic;font-size:1rem;min-height:1.5em;}
+
+/* ── ORBS ── */
+.orb{position:fixed;border-radius:50%;pointer-events:none;z-index:-1;filter:blur(100px);opacity:0.05;}
+.orb1{width:500px;height:500px;background:#cc0000;top:-200px;left:-100px;}
+.orb2{width:400px;height:400px;background:#440000;bottom:0;right:-100px;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:700px){
+  #screen-game{flex-direction:column;align-items:center;}
+  .menu-box{padding:1.5rem;}
+}
+</style>
+</head>
+<body>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<!-- INTRO -->
+<div id="screen-intro" class="screen active">
+<pre id="door-ascii">
+        88888888888888888888888888888888888888888888888888888888
+        88.._|      | `-.  -_-_ _-_  _-  _- -_ -  .'|   |'._88
+        88   |      | `-.  -_-_ _-_  _-  _- -_ -  .'|   | ..88
+        88   |   _.-'    .-_- -_ -_  _-  _- -_ - .'  |.;'   88
+        88   |.-'     _.'  _-_  _-_ _-   _- _- _.'   |  '   88
+        88   |_____.-'  .-'  _-  _- -_-  _-  _-'    .|      88
+        88   |       .-' .-'  _________________________________88
+        88   |      | .-'  .-' |   HANGMAN  -- DARK EDITION  |88
+        88   |      ||    |    |_________________________________88
+        88   |      ||    |   __  __  __  __  __  __  __  __   88
+        88   |      ||    |  |  ||  ||  ||  ||  ||  ||  ||  |  88
+        88   |      ||    |  |__||__||__||__||__||__||__||__|  88
+        88___|______|'.__.|___________________________________ _88
+        8888888888888888888888888888888888888888888888888888888888
+</pre>
+  <div class="press-enter" id="press-enter-text">[ PRESS ENTER TO DARE ]</div>
+</div>
+
+<!-- DOOR -->
+<div id="screen-door" class="screen">
+<pre style="color:#3a1a00;font-size:clamp(0.3rem,0.7vw,0.55rem);text-shadow:0 0 5px #661100;">
+     .     .       .  .   . .   .   . .    +  .
+  .     .  :     .    .. :. .___---------___.
+       .  .   .    .  :.:. _".^ .^ ^.  '.. :"-_.
+    .  :       .  .  .:../:            . .^  :.:\
+        .   . :: +. :.:/: .   .    .        . . .:\
+ .  :    .     . _ :::/:               .  ^ .  . . :\
+  .. . .   . - : :.:./.                        .  :\
+  .      .     . :..|:                    .  .  ^. .:|
+    .       . : : ..||        .                . . !:|
+  .     . . . ::. ::\(                           . :)/
+ .   .     : . : .:.|. ######              .#######::|
+  :.. .  :-  : .:  ::|.#######           ..########:|
+ .  .  .  ..  .  .. :\ ########          :######## :/
+  .        .+ :: : -.:\ ########       . ########.:/
+    .  .+   . . . . :.:\. #######       #######..:/
+      :: . . . . ::.:..:.\ .      | |      . .:/
+   .   .   .  .. :  -::::.\             ..:/
+      .  :  .  .  .-:.":.::.\ .           .:/
+ .      -.   . . . .: .:::.:.\           .:/
+.   .   .  :      : ....::_:..:\   ___.  :/
+   .   .  .   .:. .. .  .: :.:.\ .     :/
+     +   .   .   : . ::. :.:. .:|\ .:/|
+                       LET ME TAKE YOU TO ANOTHER UNIVERSE...
+</pre>
+  <div class="door-prompt">
+    <p id="door-whisper">... The door creaks open slightly, the air growing colder ...<br>A chilling whisper fills the air: <em>"Do you dare to proceed?"</em><br>To open the door, you must type the word <strong style="color:#cc0000">OPEN</strong>...</p>
+    <div class="door-input-wrap">
+      <input id="door-input" type="text" placeholder="TYPE HERE..." maxlength="10" autocomplete="off"/>
+      <button class="btn-ghost" onclick="checkDoor()">ENTER</button>
+    </div>
+    <p id="door-response" style="color:#cc0000;margin-top:1rem;font-family:var(--type);font-style:italic;min-height:1.5em;"></p>
+  </div>
+</div>
+
+<!-- MENU -->
+<div id="screen-menu" class="screen">
+  <div class="menu-title">HANGMAN</div>
+  <div class="menu-sub">— choose your fate —</div>
+  <div class="menu-box">
+    <div class="menu-item" onclick="startLevel(1)">
+      <span class="menu-num">[1]</span> Level 1 — Lowercase Only
+      <span class="level-badge badge-easy">EASY</span>
+    </div>
+    <div class="menu-item" onclick="startLevel(2)">
+      <span class="menu-num">[2]</span> Level 2 — UPPERCASE Only
+      <span class="level-badge badge-medium">MEDIUM</span>
+    </div>
+    <div class="menu-item" onclick="startLevel(3)">
+      <span class="menu-num">[3]</span> Level 3 — Mixed + Spaces
+      <span class="level-badge badge-hard">HARD</span>
+    </div>
+    <div class="menu-item" onclick="showScreen('screen-howto')">
+      <span class="menu-num">[4]</span> How to Play?
+    </div>
+    <div class="menu-item" onclick="quitGame()" style="color:var(--muted);">
+      <span class="menu-num">[0]</span> Quit
+    </div>
+  </div>
+</div>
+
+<!-- NAME -->
+<div id="screen-name" class="screen">
+  <div class="horror-title">Who dares?</div>
+  <div class="creep-text">Enter your name, brave soul...</div>
+  <input class="styled-input" id="player-name-input" type="text" placeholder="YOUR NAME" maxlength="15" autocomplete="off"/>
+  <button class="btn-primary" onclick="confirmName()">PROCEED →</button>
+</div>
+
+<!-- WORD INPUT -->
+<div id="screen-word-input" class="screen">
+  <div class="level-title" id="level-display">LEVEL 1</div>
+  <div id="welcome-msg" style="font-family:var(--type);color:var(--red-bright);font-size:1.1rem;"></div>
+  <div class="instruction-box" id="level-instruction"></div>
+  <input class="styled-input" id="word-input" type="text" placeholder="ENTER THE WORD" maxlength="20" autocomplete="off" autocorrect="off" spellcheck="false"/>
+  <div id="word-error" style="color:var(--red-bright);font-family:var(--mono);font-size:0.8rem;min-height:1.2em;"></div>
+  <button class="btn-primary" onclick="confirmWord()">START GAME →</button>
+</div>
+
+<!-- HELP -->
+<div id="screen-help" class="screen">
+  <h2>Need guidance?</h2>
+  <div class="typed-container" id="help-text"></div>
+  <div class="help-options">
+    <button class="btn-primary" onclick="startActualGame()">I'm Ready — Start!</button>
+    <button class="btn-ghost" onclick="showHelpText()">Help me...</button>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="screen-game" class="screen">
+  <div class="game-left">
+    <pre class="hangman-ascii" id="hangman-display"></pre>
+    <div class="attempts-bar" id="attempts-bar"></div>
+    <div style="font-family:var(--mono);font-size:0.75rem;color:var(--muted);" id="chances-left"></div>
+  </div>
+  <div class="game-right">
+    <div class="player-info">Player: <span id="player-name-display"></span> &nbsp;|&nbsp; Level: <span id="level-display-game"></span></div>
+    <div class="word-display" id="word-display"></div>
+    <div style="font-family:var(--mono);font-size:0.7rem;color:var(--muted);margin-bottom:-0.5rem;">Wrong letters:</div>
+    <div class="wrong-letters" id="wrong-letters"></div>
+    <div class="keyboard" id="keyboard"></div>
+    <div class="msg-box" id="msg-box">Choose a letter to begin...</div>
+  </div>
+</div>
+
+<!-- END -->
+<div id="screen-end" class="screen">
+  <pre class="end-ascii" id="end-ascii"></pre>
+  <div class="end-title" id="end-title"></div>
+  <div class="end-word" id="end-word"></div>
+  <div class="end-btns">
+    <button class="btn-primary" onclick="goToMenu()">Play Again</button>
+    <button class="btn-ghost" onclick="quitGame()">Leave...</button>
+  </div>
+</div>
+
+<!-- HOW TO PLAY -->
+<div id="screen-howto" class="screen">
+  <h2 style="font-family:var(--horror);font-size:2.5rem;color:var(--red);text-shadow:0 0 15px var(--red);">How to Play</h2>
+  <div class="howto-box">
+    <p>*** <em>Darkness falls...</em> ***</p>
+    <p>I once played the haunting game of hangman... And now, I linger in the shadows.</p>
+    <p><strong>Player 1</strong> enters a secret word. <strong>Player 2</strong> must guess it letter by letter.</p>
+    <p>You have only <strong>15 attempts</strong>. Each wrong guess draws the gallows closer...</p>
+    <p><strong>Level 1:</strong> lowercase letters only (a-z)</p>
+    <p><strong>Level 2:</strong> UPPERCASE letters only (A-Z)</p>
+    <p><strong>Level 3:</strong> Mixed case + spaces (use _ for spaces)</p>
+    <p>Only if you succeed, shall you escape this dark fate!</p>
+  </div>
+  <button class="btn-ghost" onclick="showScreen('screen-menu')">← Back to Menu</button>
+</div>
+
+<script>
+// ── STATE ──
+let state = {
+  level: 1,
+  playerName: '',
+  secretWord: '',
+  displayWord: [],
+  wrongLetters: [],
+  chances: 0,
+  maxChances: 15,
+  gameOver: false
+};
+
+// ── HANGMAN STAGES ──
+const HANGMAN = [
+`   |   \n   |    \n   |     \n   |      \n   |      \n   |       \n   |       \n   |       \n   |    \n   |      \n   |     \n~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~`,
+`   |   \n   |    \n   |     \n   |      \n   |      \n   |       \n   |       \n   |       \n  /|\\      \n / | \\     \n/  |  \\    \n~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~`,
+`--------------\n    | \n    | \n    | \n    | \n    | \n    | \n    | \n    | \n   /|\\ \n  / | \\ \n /  |  \\ \n~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~`,
+` -------------- \n    |        |  \n    |         \n    |           \n    |          \n    |          \n    |         \n    |          \n   |      \n   /|\\       \n / | \\     \n/  |  \\    \n~~~~~~~~~~~~~~~~~~~~~ \n~~~~~~~~~~~~~~~~~~~~~ \n~~~~~~~~~~~~~~~~~~~~~`,
+`  -------------- \n    |        |  \n    |        | \n    |           \n    |          \n    |          \n    |         \n    |          \n   |      \n   /|\\       \n / | \\     \n/  |  \\    \n~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~`,
+`  -------------- \n    |        |  \n    |        | \n    |       / \\   \n    |       \\_/  \n    |          \n    |         \n    |          \n   |      \n   /|\\       \n / | \\     \n/  |  \\    \n~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~`,
+`  -------------- \n    |        |  \n    |        | \n    |       / \\   \n    |       \\_/  \n    |        |    \n    |            \n    |          \n   |         \n   /|\\       \n / | \\     \n/  |  \\    \n~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~`,
+`  -------------- \n    |        |  \n    |        | \n    |       / \\   \n    |       \\_/  \n    |        |    \n    |        |    \n    |          \n   |         \n   /|\\       \n / | \\     \n/  |  \\    \n~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~`,
+`  -------------- \n    |        |  \n    |        | \n    |       / \\   \n    |       \\_/  \n    |        |    \n    |        |    \n    |        |  \n   |         \n   /|\\       \n / | \\     \n/  |  \\    \n~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~`,
+`  -------------- \n    |        |  \n    |        | \n    |       / \\   \n    |       \\_/  \n    |        |__    \n    |        |    \n    |        |  \n   |              \n   /|\\       \n / | \\     \n/  |  \\    \n~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~`,
+`  -------------- \n    |        |  \n    |        | \n    |       / \\   \n    |       \\_/  \n    |      __|__    \n    |        |    \n    |        |  \n   |              \n   /|\\       \n / | \\     \n/  |  \\    \n~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~`,
+`  -------------- \n    |        |  \n    |        | \n    |       / \\   \n    |       \\_/  \n    |      __|__    \n    |        |    \n    |        |         \n   |         \\       \n   /|\\             \n / | \\            \n/  |  \\         \n~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~`,
+`  -------------- \n    |        |  \n    |        | \n    |       / \\   \n    |       \\_/  \n    |      __|__    \n    |        |    \n    |        |  \n   |         \\    \n   /|\\         \\    \n / | \\     \n/  |  \\    \n~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~`,
+`  -------------- \n    |        |  \n    |        | \n    |       / \\   \n    |       \\_/  \n    |      __|__    \n    |        |    \n    |        |  \n   |       / \\    \n   /|\\         \\    \n / | \\     \n/  |  \\    \n~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~`,
+`  -------------- \n    |        |  \n    |        | \n    |       / \\   \n    |       \\_/         \n    |      __|__    \n    |        |           \n    |        |      \n   |       / \\    \n   /|\\     /   \\    \n / | \\              \n/  |  \\            \n~~~~~~~~~~~~~~~~~~~~~ \n~~~~~~~~~~~~~~~~~~~~~ \n~~~~~~~~~~~~~~~~~~~~~`
+];
+
+const WIN_ASCII = `
+    .-"  "-.
+   /        \\
+  |  .-""-. |
+  | / ^  ^ \\|
+   \\ \`-.__.-'/
+    '------'
+  YOU SURVIVED!`;
+
+const LOSE_ASCII = `
+  -------------- 
+    |        |  
+    |       / \\ 
+    |       \\_/  
+    |      __|__  
+    |        |    
+    |        |  
+   |       / \\ 
+   /|\\     /   \\
+  GAME OVER...`;
+
+// ── AUDIO (Web Audio API) ──
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+function getAudio(){if(!audioCtx)audioCtx=new AudioCtx();return audioCtx;}
+function beep(freq=523,dur=0.2,type='sine',vol=0.15){
+  try{
+    const ctx=getAudio();
+    const o=ctx.createOscillator();
+    const g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.type=type;o.frequency.value=freq;
+    g.gain.setValueAtTime(vol,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+    o.start();o.stop(ctx.currentTime+dur);
+  }catch(e){}
+}
+function playCorrect(){beep(523,0.15,'sine',0.1);setTimeout(()=>beep(659,0.15,'sine',0.1),120);}
+function playWrong(){beep(200,0.3,'sawtooth',0.08);}
+function playWin(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,0.3,'sine',0.12),i*150));}
+function playLose(){[300,250,200,150].forEach((f,i)=>setTimeout(()=>beep(f,0.4,'sawtooth',0.1),i*200));}
+function playClick(){beep(800,0.05,'square',0.05);}
+
+// ── SCREENS ──
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── INTRO ──
+document.addEventListener('keydown',e=>{
+  const s=document.getElementById('screen-intro');
+  if(s.classList.contains('active')&&(e.key==='Enter'||e.key===' ')){
+    playClick();
+    showScreen('screen-door');
+    setTimeout(()=>document.getElementById('door-input').focus(),300);
+  }
+});
+document.getElementById('screen-intro').addEventListener('click',()=>{
+  playClick();showScreen('screen-door');
+  setTimeout(()=>document.getElementById('door-input').focus(),300);
+});
+document.getElementById('door-input').addEventListener('keydown',e=>{if(e.key==='Enter')checkDoor();});
+
+// ── DOOR ──
+function checkDoor(){
+  const val=document.getElementById('door-input').value.trim().toUpperCase();
+  const resp=document.getElementById('door-response');
+  if(val==='OPEN'){
+    beep(440,0.5,'sine',0.1);
+    resp.style.color='#00cc44';
+    resp.textContent='The door swings wide open, revealing a dark abyss... You step forward.';
+    setTimeout(()=>{showScreen('screen-menu');},1500);
+  } else {
+    playWrong();
+    resp.style.color='#cc0000';
+    resp.textContent='"You weren\'t ready..." whispers the void. Try again...';
+    document.getElementById('door-input').value='';
+    document.getElementById('door-input').focus();
+  }
+}
+
+// ── MENU ──
+function goToMenu(){showScreen('screen-menu');playClick();}
+
+function startLevel(lvl){
+  playClick();
+  state.level=lvl;
+  showScreen('screen-name');
+  setTimeout(()=>document.getElementById('player-name-input').focus(),200);
+}
+
+document.addEventListener('keydown',e=>{
+  const menu=document.getElementById('screen-menu');
+  if(!menu.classList.contains('active'))return;
+  if(e.key==='1')startLevel(1);
+  else if(e.key==='2')startLevel(2);
+  else if(e.key==='3')startLevel(3);
+  else if(e.key==='4'){playClick();showScreen('screen-howto');}
+  else if(e.key==='0')quitGame();
+});
+
+// ── NAME ──
+function confirmName(){
+  const name=document.getElementById('player-name-input').value.trim();
+  if(!name){document.getElementById('player-name-input').focus();return;}
+  playClick();
+  state.playerName=name;
+  showWordInput();
+}
+document.getElementById('player-name-input').addEventListener('keydown',e=>{if(e.key==='Enter')confirmName();});
+
+// ── WORD INPUT ──
+function showWordInput(){
+  const lvlTitles=['','LEVEL 1','LEVEL 2','LEVEL 3'];
+  const instructions=[
+    '',
+    'Player 1: Enter a secret word using LOWERCASE letters only (a-z).\nPlayer 2 will try to guess it!',
+    'Player 1: Enter a secret word using UPPERCASE letters only (A-Z).\nPlayer 2 will try to guess it!',
+    'Player 1: Enter a secret word — mixed case allowed. Use _ (underscore) for spaces.\nPlayer 2 will try to guess it!'
+  ];
+  document.getElementById('level-display').textContent=lvlTitles[state.level];
+  document.getElementById('welcome-msg').textContent=`Welcome ${state.playerName}! Show me what you can do!`;
+  document.getElementById('level-instruction').textContent=instructions[state.level];
+  document.getElementById('word-input').value='';
+  document.getElementById('word-error').textContent='';
+  showScreen('screen-word-input');
+  setTimeout(()=>document.getElementById('word-input').focus(),200);
+}
+
+function confirmWord(){
+  const raw=document.getElementById('word-input').value;
+  const err=document.getElementById('word-error');
+  if(!raw.trim()){err.textContent='Enter a word first!';return;}
+
+  let valid=true;
+  if(state.level===1){
+    for(let c of raw){if(c<'a'||c>'z'){valid=false;break;}}
+    if(!valid){err.textContent='Level 1: lowercase letters only! (a-z)';beep(200,0.3,'sawtooth',0.08);return;}
+  } else if(state.level===2){
+    for(let c of raw){if(c<'A'||c>'Z'){valid=false;break;}}
+    if(!valid){err.textContent='Level 2: UPPERCASE letters only! (A-Z)';beep(200,0.3,'sawtooth',0.08);return;}
+  }
+
+  state.secretWord=raw;
+  playClick();
+  showScreen('screen-help');
+  document.getElementById('help-text').textContent='';
+}
+document.getElementById('word-input').addEventListener('keydown',e=>{if(e.key==='Enter')confirmWord();});
+
+// ── HELP ──
+function showHelpText(){
+  const txt=`Don't worry, I will help you!\nIn this part, Player 2 needs to guess the word letter by letter.\nYou have 15 attempts. Each wrong guess brings the hangman closer.\nGood luck... you'll need it.`;
+  let i=0;
+  const el=document.getElementById('help-text');
+  el.textContent='';
+  const iv=setInterval(()=>{
+    if(i<txt.length){el.textContent+=txt[i++];}
+    else clearInterval(iv);
+  },18);
+}
+function startActualGame(){
+  playClick();
+  initGame();
+  showScreen('screen-game');
+}
+
+// ── GAME ──
+function initGame(){
+  state.displayWord=[];
+  state.wrongLetters=[];
+  state.chances=0;
+  state.gameOver=false;
+
+  const word=state.secretWord;
+  for(let i=0;i<word.length;i++){
+    state.displayWord.push(word[i]==='_'?' ':'*');
+  }
+
+  renderGame();
+  buildKeyboard();
+  document.getElementById('player-name-display').textContent=state.playerName;
+  document.getElementById('level-display-game').textContent='Level '+state.level;
+  document.getElementById('msg-box').className='msg-box';
+  document.getElementById('msg-box').textContent='Choose a letter to begin...';
+}
+
+function renderGame(){
+  // Hangman
+  document.getElementById('hangman-display').textContent=HANGMAN[state.chances]||HANGMAN[14];
+
+  // Attempts bar
+  const bar=document.getElementById('attempts-bar');
+  bar.innerHTML='';
+  for(let i=0;i<state.maxChances;i++){
+    const d=document.createElement('div');
+    d.className='attempt-dot'+(i<state.chances?' used':'');
+    bar.appendChild(d);
+  }
+  document.getElementById('chances-left').textContent=`${state.maxChances-state.chances} attempts remaining`;
+
+  // Word display
+  const wd=document.getElementById('word-display');
+  wd.innerHTML='';
+  for(let i=0;i<state.secretWord.length;i++){
+    const slot=document.createElement('div');
+    const ch=state.secretWord[i];
+    if(ch==='_'||ch===' '){
+      slot.className='letter-slot space-slot';
+      slot.textContent=' ';
+    } else {
+      slot.className='letter-slot'+(state.displayWord[i]!=='*'?' revealed':'');
+      slot.textContent=state.displayWord[i]==='*'?'':state.displayWord[i];
+    }
+    wd.appendChild(slot);
+  }
+
+  // Wrong letters
+  const wl=document.getElementById('wrong-letters');
+  wl.innerHTML='';
+  for(const l of state.wrongLetters){
+    const s=document.createElement('span');
+    s.className='wrong-letter';s.textContent=l;
+    wl.appendChild(s);
+  }
+}
+
+function buildKeyboard(){
+  const kb=document.getElementById('keyboard');
+  kb.innerHTML='';
+  const letters='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let chars;
+  if(state.level===1) chars='abcdefghijklmnopqrstuvwxyz';
+  else if(state.level===2) chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  else chars='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ _';
+
+  for(const c of chars){
+    const btn=document.createElement('button');
+    btn.className='key-btn';
+    btn.textContent=c==='_'?'_':c;
+    btn.dataset.key=c;
+    btn.addEventListener('click',()=>guessLetter(c));
+    kb.appendChild(btn);
+  }
+}
+
+function guessLetter(letter){
+  if(state.gameOver)return;
+  const word=state.secretWord;
+  let found=false;
+
+  for(let i=0;i<word.length;i++){
+    if(word[i]===letter){
+      state.displayWord[i]=letter;
+      found=true;
+    }
+  }
+
+  // Disable key
+  const btn=document.querySelector(`.key-btn[data-key="${letter}"]`);
+  if(btn){
+    btn.disabled=true;
+    btn.classList.add(found?'correct':'wrong-key');
+  }
+
+  if(found){
+    playCorrect();
+    document.getElementById('msg-box').className='msg-box good';
+    document.getElementById('msg-box').textContent='CONGRATULATIONS! You found a letter! The poor man is happy.';
+  } else {
+    state.wrongLetters.push(letter);
+    state.chances++;
+    playWrong();
+    document.getElementById('msg-box').className='msg-box bad';
+    document.getElementById('msg-box').textContent=`OOPS! The character "${letter}" does not belong to the word.`;
+  }
+
+  renderGame();
+  checkWinLose();
+}
+
+// Keyboard input
+document.addEventListener('keydown',e=>{
+  if(!document.getElementById('screen-game').classList.contains('active'))return;
+  if(state.gameOver)return;
+  const k=e.key;
+  if(k.length===1){
+    const btn=document.querySelector(`.key-btn[data-key="${k}"]`);
+    if(btn&&!btn.disabled)guessLetter(k);
+  }
+});
+
+function checkWinLose(){
+  const word=state.secretWord;
+  const won=state.displayWord.every((c,i)=>word[i]==='_'?true:c===word[i]);
+  const lost=state.chances>=state.maxChances;
+
+  if(won){
+    playWin();
+    setTimeout(()=>showEnd(true),600);
+  } else if(lost){
+    playLose();
+    setTimeout(()=>showEnd(false),600);
+  }
+  state.gameOver=won||lost;
+}
+
+function showEnd(won){
+  document.getElementById('end-ascii').className='end-ascii '+(won?'win':'lose');
+  document.getElementById('end-ascii').textContent=won?WIN_ASCII:LOSE_ASCII;
+  document.getElementById('end-title').className='end-title '+(won?'win':'lose');
+  document.getElementById('end-title').textContent=won?'You Survived!':'You Are Dead!';
+  document.getElementById('end-word').innerHTML=`The word was: <span>${state.secretWord.replace(/_/g,' ')}</span>`;
+  showScreen('screen-end');
+}
+
+function quitGame(){
+  playClick();
+  document.getElementById('screen-end').innerHTML=`
+    <pre class="end-ascii lose" style="color:#550000">${LOSE_ASCII}</pre>
+    <div style="font-family:var(--horror);font-size:3rem;color:#880000;text-shadow:0 0 20px #440000;">You played well...</div>
+    <div style="font-family:var(--type);color:#553300;font-style:italic;font-size:1rem;">But beware, the darkness watches.<br>We await your return, brave soul... if you dare.</div>
+    <button class="btn-ghost" onclick="location.reload()">Return...</button>
+  `;
+  showScreen('screen-end');
+}
+</script>
+</body>
+</html>
